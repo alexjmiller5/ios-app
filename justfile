@@ -33,15 +33,19 @@ build: gen
     APP=$(ls -td ~/Library/Developer/Xcode/DerivedData/{{app}}-*/Build/Products/Debug-iphoneos/{{app}}.app | head -1) && \
       xcrun devicectl device install app --device {{device_id}} "$APP"
 
-# STABLE build + install: Ad Hoc distribution profile, 1-year validity, no logs
-# One-time setup per app: create the Ad Hoc profile (see CLAUDE.md checklist)
+# STABLE build + install: Ad Hoc distribution, 1-year validity, no logs.
+# Wildcard profile covers any com.alexmiller.* app with NO entitlements;
+# apps needing entitlements (push, wallet, app groups…) get their own
+# explicit profile — see CLAUDE.md, then override profile here.
+profile := env_var_or_default("IOS_PROFILE", "Alexander Wildcard Ad Hoc")
+
 deploy: gen
     xcodebuild -project {{app}}.xcodeproj -scheme {{app}} \
       -destination "platform=iOS,id={{device_id}}" \
       -configuration Release \
       CODE_SIGN_STYLE="Manual" \
       CODE_SIGN_IDENTITY="Apple Distribution" \
-      PROVISIONING_PROFILE_SPECIFIER="{{app}} Ad Hoc Provisioning Profile" \
+      PROVISIONING_PROFILE_SPECIFIER="{{profile}}" \
       DEVELOPMENT_TEAM={{team_id}} \
       clean build
     APP=$(ls -td ~/Library/Developer/Xcode/DerivedData/{{app}}-*/Build/Products/Release-iphoneos/{{app}}.app | head -1) && \

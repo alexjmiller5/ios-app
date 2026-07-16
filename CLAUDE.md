@@ -29,11 +29,21 @@ Rules:
 
 - **If Alex asks for device logs → the app must be a DEBUG install.** Release
   strips `get-task-allow`; `just logs` reads nothing from a STABLE install.
-- STABLE needs a per-app Ad Hoc provisioning profile named
-  `"<App> Ad Hoc Provisioning Profile"` installed in
-  `~/Library/MobileDevice/Provisioning Profiles/`. Creating it is one-time
-  click-ops on developer.apple.com (see README). If `just deploy` fails with
-  "Profile doesn't match", the profile is missing or expired.
+- **STABLE signing defaults to the wildcard profile** `"Alexander Wildcard
+  Ad Hoc"` (`com.alexmiller.*`, expires 2027-02, installed in both
+  `~/Library/Developer/Xcode/UserData/Provisioning Profiles/` and
+  `~/Library/MobileDevice/Provisioning Profiles/`). Any app with NO
+  entitlements deploys with zero portal click-ops.
+- **Apps that need entitlements — push notifications, Apple Wallet, App
+  Groups, HealthKit, iCloud, Sign in with Apple, etc. — cannot use the
+  wildcard.** They need one-time click-ops on developer.apple.com: an
+  explicit App ID with the capability enabled + a dedicated Ad Hoc profile
+  (steps in README). Then set `IOS_PROFILE` or the justfile `profile` var to
+  that profile's name. Receptor is the worked example (App Groups).
+- If `just deploy` fails with "Profile doesn't match" or "doesn't include
+  the ... entitlement", the app grew an entitlement — switch it off the
+  wildcard per the previous bullet. If the wildcard itself expired, Alex
+  regenerates it on the portal and reinstalls (README).
 - Device installs use `xcrun devicectl device install app` (wired into the
   just recipes). Alex's iPhone UDID is the justfile default; override with
   `IOS_DEVICE_ID`.
