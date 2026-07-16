@@ -38,7 +38,11 @@ Rules:
   just recipes). Alex's iPhone UDID is the justfile default; override with
   `IOS_DEVICE_ID`.
 - `just check` is the CI-able correctness gate: simulator build with
-  `CODE_SIGNING_ALLOWED=NO` — no signing, no device needed.
+  `CODE_SIGNING_ALLOWED=NO` — no signing, no device needed. `just test`
+  runs the unit-test target (`Tests/`) the same way.
+- Automatic signing requires Xcode to be signed into the Apple ID
+  (Xcode → Settings → Accounts) — a one-time per-machine step. Without it
+  `just build` fails with "No Accounts" / "No profiles found".
 
 ## Conventions
 
