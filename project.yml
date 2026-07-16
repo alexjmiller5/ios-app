@@ -1,0 +1,26 @@
+name: CHANGEME
+options:
+  bundleIdPrefix: com.alexmiller
+  deploymentTarget:
+    iOS: "17.0"
+  xcodeVersion: "26.0"
+settings:
+  base:
+    DEVELOPMENT_TEAM: 467A4PRB8F
+    SWIFT_VERSION: "5.0"
+targets:
+  CHANGEME:
+    type: application
+    platform: iOS
+    sources: [App]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.alexmiller.CHANGEME
+        CODE_SIGN_STYLE: Automatic
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        TARGETED_DEVICE_FAMILY: "1"
+    info:
+      path: App/Info.plist
+      properties:
+        UILaunchScreen: {}
+        ITSAppUsesNonExemptEncryption: false
