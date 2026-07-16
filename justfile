@@ -13,6 +13,12 @@ gen:
 dev: gen
     open {{app}}.xcodeproj
 
+# unit tests on a simulator (no signing)
+test: gen
+    xcodebuild -project {{app}}.xcodeproj -scheme {{app}} \
+      -destination "platform=iOS Simulator,name=iPhone 17" \
+      CODE_SIGNING_ALLOWED=NO test
+
 # simulator smoke build (no signing) — CI-able correctness check
 check: gen
     xcodebuild -project {{app}}.xcodeproj -scheme {{app}} \

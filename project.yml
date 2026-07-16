@@ -24,3 +24,17 @@ targets:
       properties:
         UILaunchScreen: {}
         ITSAppUsesNonExemptEncryption: false
+  CHANGEMETests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: [Tests]
+    dependencies:
+      - target: CHANGEME
+schemes:
+  CHANGEME:
+    build:
+      targets:
+        CHANGEME: all
+        CHANGEMETests: [test]
+    test:
+      targets: [CHANGEMETests]
