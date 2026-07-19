@@ -92,16 +92,11 @@ Rules:
 5. When the app graduates to daily use: create the Ad Hoc profile
    (README "Stable installs" section), then `just deploy`.
 
-## Not Alex? Owner-specific values to replace
+## Hardcoded owner defaults
 
-Everything else in this template is generic. If you forked this, replace:
-
-- `DEVELOPMENT_TEAM: 467A4PRB8F` (project.yml) and `team_id` (justfile) →
-  your Apple Developer Team ID
-- `bundleIdPrefix: com.alexmiller` + `PRODUCT_BUNDLE_IDENTIFIER` (project.yml)
-  → your reverse-DNS prefix
-- `device_id` default (justfile) → your device's UDID
-  (`xcrun devicectl list devices`)
-- `profile` default `"Alexander Wildcard Ad Hoc"` (justfile) → your own Ad Hoc
-  provisioning profile (README "Stable installs" explains creating one); the
-  1-year signing flow assumes a paid Apple Developer Program membership
+Unlike the per-app CHANGEME placeholders, these values are constant across
+Alex's projects and hardcoded for convenience: `DEVELOPMENT_TEAM: 467A4PRB8F`
+(project.yml + justfile `team_id`), `bundleIdPrefix: com.alexmiller`
+(project.yml), the justfile `device_id` default (Alex's iPhone UDID), and the
+`profile` default `"Alexander Wildcard Ad Hoc"`. The 1-year signing flow
+assumes his paid Apple Developer Program membership.
