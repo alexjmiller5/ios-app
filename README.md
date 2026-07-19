@@ -11,6 +11,7 @@ just test               # unit tests (simulator, no signing)
 just check              # simulator build, no signing (CI gate)
 just build              # DEBUG install to device (7-day signing, logs readable)
 just deploy             # STABLE install to device (1-year Ad Hoc signing)
+just mac                # build + install the Mac app to /Applications
 ```
 
 `just build` (DEBUG) needs Xcode signed into the Apple ID (Xcode → Settings

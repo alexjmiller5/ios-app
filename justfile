@@ -1,4 +1,4 @@
-# iOS app — standard verbs (see global CLAUDE.md)
+# Apple app — standard verbs (see global CLAUDE.md)
 
 app := "CHANGEME"
 # Alex's iPhone; override with IOS_DEVICE_ID for another device
@@ -50,6 +50,16 @@ deploy: gen
       clean build
     APP=$(ls -td ~/Library/Developer/Xcode/DerivedData/{{app}}-*/Build/Products/Release-iphoneos/{{app}}.app | head -1) && \
       xcrun devicectl device install app --device {{device_id}} "$APP"
+
+# build + install the Mac app to /Applications (multiplatform targets only;
+# local Apple Development signing — no Ad Hoc profile, no yearly expiry)
+mac: gen
+    xcodebuild -project {{app}}.xcodeproj -scheme {{app}} \
+      -destination "platform=macOS" \
+      -configuration Release -allowProvisioningUpdates build
+    APP=$(ls -td ~/Library/Developer/Xcode/DerivedData/{{app}}-*/Build/Products/Release/{{app}}.app | head -1) && \
+      rm -rf /Applications/{{app}}.app && ditto "$APP" /Applications/{{app}}.app
+    @echo "installed /Applications/{{app}}.app"
 
 # collect last 5m of device logs into ./logs/ (requires sudo; app must be a DEBUG install)
 logs:
