@@ -1,9 +1,23 @@
 # CLAUDE.md
 
-Native iOS app (SwiftUI, iOS 17+). This is the template for anything that
-must run as a real app on Alex's iPhone — WKWebView wrappers, App Intents /
-Shortcuts companions, anything needing native APIs. If it could be a website
-instead, use `cf-site` (see the `personal-infra` skill).
+Native Apple app (SwiftUI, iOS 17+ / macOS 14+). This is the template for
+anything that must run as a real app on Alex's iPhone and/or Mac — WKWebView
+wrappers, App Intents / Shortcuts companions, menu-bar extras, widgets,
+anything needing native APIs. If it could be a website instead, use
+`cf-site` (see the `infra` skill).
+
+## Platforms: multiplatform by default, iOS-only by deletion
+
+The app target uses XcodeGen `supportedDestinations: [iOS, macOS]`, so one
+SwiftUI codebase builds for both. For an iOS-only app, delete `macOS` from
+the two `supportedDestinations` lines in project.yml at scaffold time —
+that's the entire opt-out; nothing else in the template is Mac-specific.
+
+The Mac side has none of the iOS signing treadmill: `just mac` builds
+Release with local Apple Development signing and installs to
+`/Applications` — no Ad Hoc profile, no yearly expiry. Platform-specific
+code uses `#if os(macOS)` / `#if os(iOS)`; platform-specific files can use
+XcodeGen `destinationFilters` in project.yml sources if the split grows.
 
 ## Project file is generated — project.yml is the source of truth
 
@@ -67,10 +81,13 @@ Rules:
 
 ## New-project checklist (delete this section after scaffolding)
 
-1. `grep -rn CHANGEME .` → replace every hit (project.yml ×3, justfile,
-   ContentView.swift, README.md). App name is PascalCase; bundle id stays
-   `com.alexmiller.<lowercase-app>`.
-2. `just gen && just check` — must build clean.
-3. `just build` — DEBUG install to the phone, confirm it launches.
-4. When the app graduates to daily use: create the Ad Hoc profile
+1. `grep -rn CHANGEME .` → replace every hit (project.yml, justfile,
+   ContentView.swift, Tests, README.md). App name is PascalCase; bundle id
+   stays `com.alexmiller.<lowercase-app>`.
+2. iOS-only app? Delete `macOS` from both `supportedDestinations` lines in
+   project.yml. Keeping the Mac app costs nothing if undecided.
+3. `just gen && just check` — must build clean.
+4. `just build` — DEBUG install to the phone, confirm it launches.
+   Multiplatform: `just mac` too.
+5. When the app graduates to daily use: create the Ad Hoc profile
    (README "Stable installs" section), then `just deploy`.
