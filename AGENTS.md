@@ -1,4 +1,4 @@
-# CLAUDE.md
+# AGENTS.md
 
 Native Apple app (SwiftUI, iOS 17+ / macOS 14+). This is the template for
 anything that must run as a real app on Alex's iPhone and/or Mac — WKWebView
