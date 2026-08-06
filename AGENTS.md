@@ -57,8 +57,9 @@ Rules:
 - If `just deploy` fails with "Profile doesn't match" or "doesn't include
   the ... entitlement", the app grew an entitlement — switch it off the
   wildcard per the previous bullet. If the wildcard itself expired, Alex
-  regenerates it on the portal, updates the `Apple Signing` vault item, and
-  re-runs `just signing-setup` (README).
+  runs `apple-signing renew-wildcard` (1password skill, `scripts/`) — it
+  rebuilds the profile via the ASC API and updates the `Apple Signing`
+  vault item — then re-runs `just signing-setup` (README).
 - If `just deploy` fails with "no identity found" / no Apple Distribution
   certificate, the keychain cache is empty — Alex runs `just signing-setup`.
 - Device installs use `xcrun devicectl device install app` (wired into the
