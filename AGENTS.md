@@ -1,23 +1,11 @@
 # AGENTS.md
 
-Native Apple app (SwiftUI, iOS 17+ / macOS 14+). This is the template for
-anything that must run as a real app on Alex's iPhone and/or Mac — WKWebView
-wrappers, App Intents / Shortcuts companions, menu-bar extras, widgets,
-anything needing native APIs. If it could be a website instead, use
-`cf-site` (see the `infra` skill).
-
-## Platforms: multiplatform by default, iOS-only by deletion
-
-The app target uses XcodeGen `supportedDestinations: [iOS, macOS]`, so one
-SwiftUI codebase builds for both. For an iOS-only app, delete `macOS` from
-the two `supportedDestinations` lines in project.yml at scaffold time —
-that's the entire opt-out; nothing else in the template is Mac-specific.
-
-The Mac side has none of the iOS signing treadmill: `just mac` builds
-Release with local Apple Development signing and installs to
-`/Applications` — no Ad Hoc profile, no yearly expiry. Platform-specific
-code uses `#if os(macOS)` / `#if os(iOS)`; platform-specific files can use
-XcodeGen `destinationFilters` in project.yml sources if the split grows.
+Native iOS app (SwiftUI, iOS 17+) for Alex's own iPhone — WKWebView
+wrappers, App Intents / Shortcuts companions, widgets, anything needing
+native APIs. Local build, wildcard Ad Hoc signing, cable install; no CI
+deploy. If it could be a website instead, use `cf-site` (see the `infra`
+skill). Personal macOS apps → the `macos-app` template; apps headed for
+TestFlight / the App Store → the `appstore-app` template.
 
 ## Project file is generated — project.yml is the source of truth
 
@@ -39,12 +27,24 @@ modes, same split Receptor uses:
 | DEBUG (dev loop) | `just build` | Automatic, Apple Development | 7 days | readable |
 | STABLE (daily use) | `just deploy` | Manual, Apple Distribution + Ad Hoc profile | 1 year | stripped |
 
+**Signing material lives in 1Password, not the keychain.** The `Apple
+Signing` vault holds the durable copies (Apple Distribution p12 in
+`Apple Distribution Cert`, the wildcard profile in
+`Wildcard Ad Hoc Profile`); the local keychain and profile dirs are a
+disposable cache. `just signing-setup` pulls and imports them;
+`just signing-cleanup` removes them again — the keychain can stay empty
+between build sessions. Both must run from Alex's OWN terminal
+(desktop-authed `op`): the claude-code service account cannot see the
+Apple Signing vault, so Claude pastes the command for Alex instead of
+running it.
+
 Rules:
 
 - **If Alex asks for device logs → the app must be a DEBUG install.** Release
   strips `get-task-allow`; `just logs` reads nothing from a STABLE install.
 - **STABLE signing defaults to the wildcard profile** `"Alexander Wildcard
-  Ad Hoc"` (`com.alexmiller.*`, expires 2027-02, installed in both
+  Ad Hoc"` (`com.alexmiller.*`, expires 2027-02, installed by
+  `just signing-setup` into both
   `~/Library/Developer/Xcode/UserData/Provisioning Profiles/` and
   `~/Library/MobileDevice/Provisioning Profiles/`). Any app with NO
   entitlements deploys with zero portal click-ops.
@@ -57,7 +57,10 @@ Rules:
 - If `just deploy` fails with "Profile doesn't match" or "doesn't include
   the ... entitlement", the app grew an entitlement — switch it off the
   wildcard per the previous bullet. If the wildcard itself expired, Alex
-  regenerates it on the portal and reinstalls (README).
+  regenerates it on the portal, updates the `Apple Signing` vault item, and
+  re-runs `just signing-setup` (README).
+- If `just deploy` fails with "no identity found" / no Apple Distribution
+  certificate, the keychain cache is empty — Alex runs `just signing-setup`.
 - Device installs use `xcrun devicectl device install app` (wired into the
   just recipes). Alex's iPhone UDID is the justfile default; override with
   `IOS_DEVICE_ID`.
@@ -84,19 +87,18 @@ Rules:
 1. `grep -rn CHANGEME .` → replace every hit (project.yml, justfile,
    ContentView.swift, Tests, README.md). App name is PascalCase; bundle id
    stays `com.alexmiller.<lowercase-app>`.
-2. iOS-only app? Delete `macOS` from both `supportedDestinations` lines in
-   project.yml. Keeping the Mac app costs nothing if undecided.
-3. `just gen && just check` — must build clean.
-4. `just build` — DEBUG install to the phone, confirm it launches.
-   Multiplatform: `just mac` too.
-5. When the app graduates to daily use: create the Ad Hoc profile
-   (README "Stable installs" section), then `just deploy`.
+2. `just gen && just check` — must build clean.
+3. `just build` — DEBUG install to the phone, confirm it launches.
+4. When the app graduates to daily use: Alex runs `just signing-setup` (his
+   terminal, desktop-authed op), then `just deploy`. Apps with entitlements
+   first need their explicit profile (README "Stable installs" section).
 
 ## Hardcoded owner defaults
 
 Unlike the per-app CHANGEME placeholders, these values are constant across
 Alex's projects and hardcoded for convenience: `DEVELOPMENT_TEAM: 467A4PRB8F`
 (project.yml + justfile `team_id`), `bundleIdPrefix: com.alexmiller`
-(project.yml), the justfile `device_id` default (Alex's iPhone UDID), and the
-`profile` default `"Alexander Wildcard Ad Hoc"`. The 1-year signing flow
-assumes his paid Apple Developer Program membership.
+(project.yml), the justfile `device_id` default (Alex's iPhone UDID), the
+`profile` default `"Alexander Wildcard Ad Hoc"`, and the 1Password
+`Apple Signing` vault item names baked into `signing-setup`. The 1-year
+signing flow assumes his paid Apple Developer Program membership.
