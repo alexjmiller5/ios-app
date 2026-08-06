@@ -51,7 +51,16 @@ one-time manual setup (Apple offers no API for this):
 
 ### Regenerating the wildcard (when it expires)
 
-Same flow, but the App ID is the existing wildcard `com.alexmiller.*` and the
-profile name stays `Alexander Wildcard Ad Hoc`. Update the
-`Wildcard Ad Hoc Profile` item in the 1Password `Apple Signing` vault
-(`mobileprovision_base64` field) and re-run `just signing-setup`.
+No portal click-ops — run the maintenance CLI (1password skill,
+`scripts/apple-signing`) in a desktop-authed `op` terminal:
+
+```sh
+apple-signing renew-wildcard        # --dry-run to preview
+```
+
+It rebuilds `Alexander Wildcard Ad Hoc` via the ASC API (same App ID, all
+registered iOS devices, current distribution cert) and updates the
+`Wildcard Ad Hoc Profile` item in the 1Password `Apple Signing` vault.
+Then re-run `just signing-setup`. If the distribution cert is also expiring,
+`apple-signing renew-distribution` first (annual renewal = both, in that
+order). `apple-signing status` shows what's close to expiry.
