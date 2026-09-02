@@ -74,6 +74,15 @@ Rules:
 
 ## Conventions
 
+- **Analytics: PostHog** (house standard - one shared PostHog Cloud project
+  across ALL of Alex's apps, web + native, segmented by the `app` super
+  property = the bundle id). Wired in `App/App.swift`: no-ops until the
+  `posthogAPIKey` constant is filled from the shared 1P item ("PostHog
+  Project API Key", AI Agent vault) at scaffold time - it's a publishable
+  key, not a secret, so it lives in source. Capture explicit named events
+  with `PostHogSDK.shared.capture("event")`; no autocapture is enabled,
+  keep it that way (free-tier event budget + narrow App Store privacy
+  labels: Identifiers + Usage Data, not linked to identity, no ATT prompt).
 - Sources live flat under `App/`; grow `Views/`, `Models/`, `Services/`
   subfolders only when the file count demands it (Receptor's layout is the
   reference for a grown app).
@@ -88,6 +97,8 @@ Rules:
 1. `grep -rn CHANGEME .` → replace every hit (project.yml, justfile,
    ContentView.swift, Tests, README.md). App name is PascalCase; bundle id
    stays `com.alexmiller.<lowercase-app>`.
+   Also fill the `posthogAPIKey` constant in `App/App.swift` from the
+   shared 1P item ("PostHog Project API Key", AI Agent vault).
 2. `just gen && just check` — must build clean.
 3. `just build` — DEBUG install to the phone, confirm it launches.
 4. When the app graduates to daily use: Alex runs `just signing-setup` (his
