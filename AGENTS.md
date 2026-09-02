@@ -75,8 +75,7 @@ Rules:
 ## Conventions
 
 - **Analytics: PostHog, OPT-IN per project** (house standard when wanted -
-  one shared PostHog Cloud project across ALL of Alex's apps, web + native,
-  segmented by the `app` super property = the bundle id). The wiring ships
+  every adopting app gets its OWN PostHog Cloud project). The wiring ships
   in `App/App.swift`; at scaffold time ASK Alex whether this app gets
   analytics:
   - **Personal/internal apps default to NO** - an audience of one produces
@@ -84,13 +83,27 @@ Rules:
     targets' `- package: PostHog` dependencies from `project.yml`, and
     strip the import, `posthogAPIKey` constant, and `init()` from
     `App/App.swift`.
-  - Adopted → fill the `posthogAPIKey` constant from the shared 1P item
-    `op://4eeyrkqibibn7k4j6rz2fbzvxm/2o56i67jtrxwegu5oqof2ndppy/credential`
-    ("PostHog Project API Key", AI Agent vault) - publishable key, not a
-    secret, so it lives in source. Capture explicit named events with
-    `PostHogSDK.shared.capture("event")`; no autocapture is enabled, keep
-    it that way (free-tier event budget + narrow App Store privacy labels:
-    Identifiers + Usage Data, not linked to identity, no ATT prompt).
+  - Adopted → the agent CREATES a PostHog project for this app and fills
+    its publishable `phc_` token into the `posthogAPIKey` constant (it is
+    not a secret, so it lives in source). Management key = "AI Agent
+    PostHog Personal API Key"
+    (`op://4eeyrkqibibn7k4j6rz2fbzvxm/mmwl3dsd7kbsfc62osuj43ovvm/credential`),
+    org `01a06053-2eab-0000-6350-0004810c636e`, US Cloud:
+    ```bash
+    KEY=$(op read "op://4eeyrkqibibn7k4j6rz2fbzvxm/mmwl3dsd7kbsfc62osuj43ovvm/credential")
+    curl -s -X POST -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
+      -d '{"name":"<project-slug>"}' \
+      "https://us.posthog.com/api/organizations/01a06053-2eab-0000-6350-0004810c636e/projects/" \
+      | jq -r .api_token   # → posthogAPIKey
+    ```
+    Free tier allows ONE project (the org's existing project - rename and
+    reuse it for the first adopter instead of creating); more projects need
+    Alex to add a card first - ask him, and remind him to SET BILLING
+    LIMITS then (they default OFF once a card exists). Capture explicit
+    named events with `PostHogSDK.shared.capture("event")`; no autocapture
+    is enabled, keep it that way (event budget + narrow App Store privacy
+    labels: Identifiers + Usage Data, not linked to identity, no ATT
+    prompt).
 - Sources live flat under `App/`; grow `Views/`, `Models/`, `Services/`
   subfolders only when the file count demands it (Receptor's layout is the
   reference for a grown app).
@@ -107,8 +120,8 @@ Rules:
    stays `com.alexmiller.<lowercase-app>`.
    Also ASK Alex whether this app gets analytics (personal/internal apps
    default no → delete the PostHog wiring per the Conventions bullet);
-   adopted → fill `posthogAPIKey` in `App/App.swift` from the shared 1P
-   item (ID ref in the Conventions bullet above).
+   adopted → create this app's own PostHog project and fill `posthogAPIKey`
+   in `App/App.swift` (API call in the Conventions bullet above).
 2. `just gen && just check` — must build clean.
 3. `just build` — DEBUG install to the phone, confirm it launches.
 4. When the app graduates to daily use: Alex runs `just signing-setup` (his
