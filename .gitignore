@@ -5,3 +5,6 @@ App/Info.plist
 .DS_Store
 xcuserdata/
 logs/
+.dd/
+.build-check/
+build/

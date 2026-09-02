@@ -8,14 +8,28 @@ settings:
   base:
     DEVELOPMENT_TEAM: 467A4PRB8F
     SWIFT_VERSION: "5.0"
+  configs:
+    # Xcode project templates set these for Debug; XcodeGen does not - without
+    # them, Debug builds fail ("could not find module ... for target" arch
+    # mismatch vs SPM packages) and @testable import fails
+    debug:
+      ONLY_ACTIVE_ARCH: YES
+      ENABLE_TESTABILITY: YES
+packages:
+  PostHog:
+    url: https://github.com/PostHog/posthog-ios
+    from: 3.71.0
 targets:
   CHANGEME:
     type: application
-    supportedDestinations: [iOS]
+    platform: iOS
     sources: [App]
+    dependencies:
+      - package: PostHog
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.alexmiller.CHANGEME
+        PRODUCT_NAME: CHANGEME
         CODE_SIGN_STYLE: Automatic
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         TARGETED_DEVICE_FAMILY: "1"
@@ -26,10 +40,15 @@ targets:
         ITSAppUsesNonExemptEncryption: false
   CHANGEMETests:
     type: bundle.unit-test
-    supportedDestinations: [iOS]
+    platform: iOS
     sources: [Tests]
+    settings:
+      base:
+        PRODUCT_NAME: CHANGEMETests
     dependencies:
       - target: CHANGEME
+      # @testable import CHANGEME needs the app's package module maps visible
+      - package: PostHog
 schemes:
   CHANGEME:
     build:
