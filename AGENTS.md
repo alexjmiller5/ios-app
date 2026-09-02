@@ -85,6 +85,7 @@ Rules:
     strip the import, `posthogAPIKey` constant, and `init()` from
     `App/App.swift`.
   - Adopted → fill the `posthogAPIKey` constant from the shared 1P item
+    `op://4eeyrkqibibn7k4j6rz2fbzvxm/2o56i67jtrxwegu5oqof2ndppy/credential`
     ("PostHog Project API Key", AI Agent vault) - publishable key, not a
     secret, so it lives in source. Capture explicit named events with
     `PostHogSDK.shared.capture("event")`; no autocapture is enabled, keep
@@ -107,7 +108,7 @@ Rules:
    Also ASK Alex whether this app gets analytics (personal/internal apps
    default no → delete the PostHog wiring per the Conventions bullet);
    adopted → fill `posthogAPIKey` in `App/App.swift` from the shared 1P
-   item ("PostHog Project API Key", AI Agent vault).
+   item (ID ref in the Conventions bullet above).
 2. `just gen && just check` — must build clean.
 3. `just build` — DEBUG install to the phone, confirm it launches.
 4. When the app graduates to daily use: Alex runs `just signing-setup` (his
