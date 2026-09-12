@@ -1,139 +1,76 @@
 # AGENTS.md
 
-Native iOS app (SwiftUI, iOS 17+) for Alex's own iPhone — WKWebView
-wrappers, App Intents / Shortcuts companions, widgets, anything needing
-native APIs. Local build, wildcard Ad Hoc signing, cable install; no CI
-deploy. If it could be a website instead, use `cf-site` (see the `infra`
-skill). Personal macOS apps → the `macos-app` template; apps headed for
-TestFlight / the App Store → the `appstore-app` template.
+Native SwiftUI app for iOS 17 or newer, intended for direct installation on an
+enrolled device. Use `cf-site` when a website is sufficient, `macos-app` for a
+macOS app, and `appstore-app` for TestFlight or App Store distribution.
 
-## Project file is generated — project.yml is the source of truth
+## Generated project
 
-The `.xcodeproj` is NOT committed. `project.yml` (XcodeGen) declares the
-project; `just gen` regenerates the xcodeproj from it. Edit project.yml for
-targets/settings/entitlements — never hand-edit the pbxproj. New source
-files under `App/` are picked up automatically on the next `just gen`.
+`project.yml` is the source of truth. The generated `.xcodeproj` and
+`App/Info.plist` are ignored. Edit `project.yml`, then run `just gen`. Source
+files below `App/` and `Tests/` are discovered by XcodeGen.
 
-XcodeGen is a brew dependency: `brew install xcodegen`.
+XcodeGen belongs in the declared developer environment. `just gen` resolves the
+real executable behind `command -v xcodegen`; keep this because Nix and other
+package managers may expose it through a symlink, and XcodeGen locates its
+settings presets relative to the real binary.
 
-## Signing: Alex has the paid Apple Developer Program
+All Xcode commands quote project and build paths. Derived data defaults to
+`$HOME/Library/Developer/Xcode/DerivedData/CHANGEME`, outside the synced source
+tree, and can be overridden with `IOS_DERIVED_DATA`.
 
-Team ID: `467A4PRB8F` (personal team, $99/yr membership — NOT the free
-7-day-only tier). Bundle IDs are always `com.alexmiller.<app>`. Two install
-modes, same split Receptor uses:
+## Signing and installation
 
-| Mode | Recipe | Signing | Validity | Logs |
-|---|---|---|---|---|
-| DEBUG (dev loop) | `just build` | Automatic, Apple Development | 7 days | readable |
-| STABLE (daily use) | `just deploy` | Manual, Apple Distribution + Ad Hoc profile | 1 year | stripped |
+- `just test` runs on `IOS_TEST_DESTINATION`, or the documented default, with
+  local ad hoc signing: `CODE_SIGN_IDENTITY=-`, `CODE_SIGNING_ALLOWED=YES`, and
+  `CODE_SIGNING_REQUIRED=YES`. This needs no developer account and permits real
+  simulator Keychain access.
+- `just check` performs an unsigned generic simulator build and needs no Apple
+  account.
+- `just build` requires `IOS_DEVELOPMENT_TEAM` and `IOS_DEVICE_ID`. It uses
+  Xcode-managed Apple Development signing, builds Debug, and installs with
+  `devicectl`.
+- `just deploy` additionally requires `IOS_PROFILE`. It builds Release with an
+  installed Apple Distribution identity and Ad Hoc profile, then installs with
+  `devicectl`.
+- `just logs` requires `IOS_DEVICE_ID`. Device logs are readable only when the
+  installed build and profile permit them.
 
-**Signing material lives in 1Password, not the keychain.** The `Apple
-Signing` vault holds the durable copies (Apple Distribution p12 in
-`Apple Distribution Cert`, the wildcard profile in
-`Wildcard Ad Hoc Profile`); the local keychain and profile dirs are a
-disposable cache. `just signing-setup` pulls and imports them;
-`just signing-cleanup` removes them again — the keychain can stay empty
-between build sessions. Both must run from Alex's OWN terminal
-(desktop-authed `op`): the claude-code service account cannot see the
-Apple Signing vault, so Claude pastes the command for Alex instead of
-running it.
-
-Rules:
-
-- **If Alex asks for device logs → the app must be a DEBUG install.** Release
-  strips `get-task-allow`; `just logs` reads nothing from a STABLE install.
-- **STABLE signing defaults to the wildcard profile** `"Alexander Wildcard
-  Ad Hoc"` (`com.alexmiller.*`, expires 2027-02, installed by
-  `just signing-setup` into both
-  `~/Library/Developer/Xcode/UserData/Provisioning Profiles/` and
-  `~/Library/MobileDevice/Provisioning Profiles/`). Any app with NO
-  entitlements deploys with zero portal click-ops.
-- **Apps that need entitlements — push notifications, Apple Wallet, App
-  Groups, HealthKit, iCloud, Sign in with Apple, etc. — cannot use the
-  wildcard.** They need one-time click-ops on developer.apple.com: an
-  explicit App ID with the capability enabled + a dedicated Ad Hoc profile
-  (steps in README). Then set `IOS_PROFILE` or the justfile `profile` var to
-  that profile's name. Receptor is the worked example (App Groups).
-- If `just deploy` fails with "Profile doesn't match" or "doesn't include
-  the ... entitlement", the app grew an entitlement — switch it off the
-  wildcard per the previous bullet. If the wildcard itself expired, Alex
-  runs `apple-signing renew-wildcard` (1password skill, `scripts/`) — it
-  rebuilds the profile via the ASC API and updates the `Apple Signing`
-  vault item — then re-runs `just signing-setup` (README).
-- If `just deploy` fails with "no identity found" / no Apple Distribution
-  certificate, the keychain cache is empty — Alex runs `just signing-setup`.
-- Device installs use `xcrun devicectl device install app` (wired into the
-  just recipes). Alex's iPhone UDID is the justfile default; override with
-  `IOS_DEVICE_ID`.
-- `just check` is the CI-able correctness gate: simulator build with
-  `CODE_SIGNING_ALLOWED=NO` — no signing, no device needed. `just test`
-  runs the unit-test target (`Tests/`) the same way.
-- Automatic signing requires Xcode to be signed into the Apple ID
-  (Xcode → Settings → Accounts) — a one-time per-machine step. Without it
-  `just build` fails with "No Accounts" / "No profiles found".
+Do not add team IDs, device IDs, profile names, certificate locations, personal
+bundle prefixes, or credential-provider commands to this template. Signing and
+device enrollment use Xcode, Keychain Access, the Apple Developer portal, and
+the environment-variable interface documented in README.md. Development
+profile validity comes from the enrolled account and generated profile; do not
+describe all development installs as lasting seven days.
 
 ## Conventions
 
-- **Analytics: PostHog, OPT-IN per project** (house standard when wanted -
-  every adopting app gets its OWN PostHog Cloud project). The wiring ships
-  in `App/App.swift`; at scaffold time ASK Alex whether this app gets
-  analytics:
-  - **Personal/internal apps default to NO** - an audience of one produces
-    no data worth reading. Declined → delete the `PostHog` package + both
-    targets' `- package: PostHog` dependencies from `project.yml`, and
-    strip the import, `posthogAPIKey` constant, and `init()` from
-    `App/App.swift`.
-  - Adopted → the agent CREATES a PostHog project for this app and fills
-    its publishable `phc_` token into the `posthogAPIKey` constant (it is
-    not a secret, so it lives in source). Management key = "AI Agent
-    PostHog Personal API Key"
-    (`op://4eeyrkqibibn7k4j6rz2fbzvxm/mmwl3dsd7kbsfc62osuj43ovvm/credential`),
-    org `01a06053-2eab-0000-6350-0004810c636e`, US Cloud:
-    ```bash
-    KEY=$(op read "op://4eeyrkqibibn7k4j6rz2fbzvxm/mmwl3dsd7kbsfc62osuj43ovvm/credential")
-    curl -s -X POST -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
-      -d '{"name":"<project-slug>"}' \
-      "https://us.posthog.com/api/organizations/01a06053-2eab-0000-6350-0004810c636e/projects/" \
-      | jq -r .api_token   # → posthogAPIKey
-    ```
-    Free tier allows ONE project (the org's existing project - rename and
-    reuse it for the first adopter instead of creating); more projects need
-    Alex to add a card first - ask him, and remind him to SET BILLING
-    LIMITS then (they default OFF once a card exists). Capture explicit
-    named events with `PostHogSDK.shared.capture("event")`; no autocapture
-    is enabled, keep it that way (event budget + narrow App Store privacy
-    labels: Identifiers + Usage Data, not linked to identity, no ATT
-    prompt).
-- Sources live flat under `App/`; grow `Views/`, `Models/`, `Services/`
-  subfolders only when the file count demands it (Receptor's layout is the
-  reference for a grown app).
-- No secrets in the app bundle. Anything sensitive is entered in a Settings
-  screen at runtime and stored in Keychain/App Group defaults (see
-  Receptor's `Configuration.swift` for the pattern).
-- Assets: `App/Assets.xcassets`; the single 1024×1024 AppIcon slot is the
-  only icon you provide (iOS scales the rest).
+- Analytics is opt-in for each scaffolded project. Ask the project owner before
+  keeping it. Personal and internal apps default to no analytics. When declined,
+  remove the PostHog package and both target dependencies from `project.yml`,
+  then remove the PostHog import, key, and initializer from `App/App.swift`.
+  When adopted, provision a dedicated PostHog project, fill its publishable key,
+  keep autocapture disabled, and record only explicit named events.
+- Keep source files flat under `App/` until their count justifies `Views/`,
+  `Models/`, or `Services/`.
+- Store no secrets in the app bundle. User-entered credentials belong in
+  Keychain. Shared nonsecret preferences may use App Group defaults when the app
+  has that entitlement.
+- Use `App/Assets.xcassets`; supply one 1024 by 1024 AppIcon and let iOS produce
+  other sizes.
 
-## New-project checklist (delete this section after scaffolding)
+## New-project checklist
 
-1. `grep -rn CHANGEME .` → replace every hit (project.yml, justfile,
-   ContentView.swift, Tests, README.md). App name is PascalCase; bundle id
-   stays `com.alexmiller.<lowercase-app>`.
-   Also ASK Alex whether this app gets analytics (personal/internal apps
-   default no → delete the PostHog wiring per the Conventions bullet);
-   adopted → create this app's own PostHog project and fill `posthogAPIKey`
-   in `App/App.swift` (API call in the Conventions bullet above).
-2. `just gen && just check` — must build clean.
-3. `just build` — DEBUG install to the phone, confirm it launches.
-4. When the app graduates to daily use: Alex runs `just signing-setup` (his
-   terminal, desktop-authed op), then `just deploy`. Apps with entitlements
-   first need their explicit profile (README "Stable installs" section).
+Delete this section after scaffolding.
 
-## Hardcoded owner defaults
-
-Unlike the per-app CHANGEME placeholders, these values are constant across
-Alex's projects and hardcoded for convenience: `DEVELOPMENT_TEAM: 467A4PRB8F`
-(project.yml + justfile `team_id`), `bundleIdPrefix: com.alexmiller`
-(project.yml), the justfile `device_id` default (Alex's iPhone UDID), the
-`profile` default `"Alexander Wildcard Ad Hoc"`, and the 1Password
-`Apple Signing` vault item names baked into `signing-setup`. The 1-year
-signing flow assumes his paid Apple Developer Program membership.
+1. Replace `com.example.CHANGEME` in `project.yml` with the chosen reverse-DNS
+   bundle ID. Replace every remaining `CHANGEME` with the app's PascalCase name.
+2. Ask whether the app gets analytics. Personal and internal apps default to no;
+   remove or configure the existing PostHog wiring as described above.
+3. Run `just gen`, `just check`, and `just test`. Override
+   `IOS_TEST_DESTINATION` when the default simulator is unavailable or in use.
+4. Complete the README enrollment steps, then set `IOS_DEVELOPMENT_TEAM` and
+   `IOS_DEVICE_ID` for `just build`.
+5. For an Ad Hoc release install, provision and install the distribution
+   certificate and profile through Apple, then also set `IOS_PROFILE` for
+   `just deploy`.
