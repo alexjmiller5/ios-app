@@ -1,12 +1,10 @@
 name: CHANGEME
 options:
-  bundleIdPrefix: com.alexmiller
   deploymentTarget:
     iOS: "17.0"
   xcodeVersion: "26.0"
 settings:
   base:
-    DEVELOPMENT_TEAM: 467A4PRB8F
     SWIFT_VERSION: "5.0"
   configs:
     # Xcode project templates set these for Debug; XcodeGen does not - without
@@ -28,7 +26,7 @@ targets:
       - package: PostHog
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.alexmiller.CHANGEME
+        PRODUCT_BUNDLE_IDENTIFIER: com.example.CHANGEME
         PRODUCT_NAME: CHANGEME
         CODE_SIGN_STYLE: Automatic
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
@@ -44,6 +42,8 @@ targets:
     sources: [Tests]
     settings:
       base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: com.example.CHANGEMETests
         PRODUCT_NAME: CHANGEMETests
     dependencies:
       - target: CHANGEME

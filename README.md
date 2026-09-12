@@ -4,63 +4,70 @@ One-sentence description of the app.
 
 ## Develop
 
+Xcode and XcodeGen are required. Keep both in the machine's declared developer
+environment. The generated project and derived build products do not belong in
+the source tree.
+
 ```bash
-brew install xcodegen   # once per machine
-just dev                # generate xcodeproj + open Xcode
-just test               # unit tests (simulator, no signing)
-just check              # simulator build, no signing (CI gate)
-just build              # DEBUG install to device (7-day signing, logs readable)
-just deploy             # STABLE install to device (1-year Ad Hoc signing)
-just signing-setup      # pull cert + profile from 1Password into the keychain
-just signing-cleanup    # remove them again (keychain is only a cache)
+just dev    # generate the project and open Xcode
+just test   # run signed simulator tests, including Keychain-dependent tests
+just check  # unsigned simulator build
 ```
 
-`just build` (DEBUG) needs Xcode signed into the Apple ID (Xcode → Settings
-→ Accounts) and a valid Apple Development certificate. `just deploy` signs
-manually with the Apple Distribution certificate — run `just signing-setup`
-first (from a desktop-authed `op` terminal) if the keychain is empty; the
-durable copies live in the 1Password `Apple Signing` vault.
+`just gen` resolves XcodeGen's real executable so installations exposed through
+a package-manager symlink can still find their settings presets. Build products
+default to `$HOME/Library/Developer/Xcode/DerivedData/CHANGEME`. Set
+`IOS_DERIVED_DATA` to another absolute path when needed. Set
+`IOS_TEST_DESTINATION` to any installed simulator destination if the default is
+not available.
 
-macOS app? Use the `macos-app` template. TestFlight / App Store? Use
-`appstore-app`.
+Simulator tests use Xcode's local ad hoc signature and need no Apple developer
+account. The signature allows tests to exercise services such as Keychain.
 
-## Stable installs (1-year signing)
+## Install on a device
 
-`just deploy` builds Release with an Ad Hoc distribution profile so the app
-survives on-device for a year without a computer. By default it uses the
-team-wide wildcard profile **"Alexander Wildcard Ad Hoc"** (`com.alexmiller.*`)
-— installed on demand by `just signing-setup`, no per-app setup.
+Use Apple's supported enrollment flow before the first device build:
 
-### Only for apps that need entitlements
+1. Sign in under Xcode Settings, Accounts and select the development team for
+   the app target under Signing & Capabilities.
+2. Connect the device, trust the Mac, enable Developer Mode when iOS requests
+   it, and let Xcode register the device.
+3. Find the team ID in the Apple developer account and the device identifier
+   with `xcrun devicectl list devices`.
 
-Push notifications, Apple Wallet, App Groups, HealthKit, iCloud, Sign in
-with Apple, etc. are not covered by a wildcard App ID. Such apps need
-one-time manual setup (Apple offers no API for this):
+Then provide the installation-specific values at runtime:
 
-1. [developer.apple.com](https://developer.apple.com/account) → Identifiers →
-   `+` → **explicit** App ID `com.alexmiller.<app>` → enable the needed
-   capabilities.
-2. Profiles → `+` → **Ad Hoc** → select that App ID, the Apple Distribution
-   certificate, and the device → name it `<App> Ad Hoc Provisioning Profile`
-   → download.
-3. Copy the `.mobileprovision` into
-   `~/Library/Developer/Xcode/UserData/Provisioning Profiles/` (Xcode 16+)
-   and `~/Library/MobileDevice/Provisioning Profiles/` (named `<UUID>.mobileprovision`).
-4. Point the build at it: edit the justfile `profile` var, or
-   `IOS_PROFILE="<App> Ad Hoc Provisioning Profile" just deploy`.
-
-### Regenerating the wildcard (when it expires)
-
-No portal click-ops — run the maintenance CLI (1password skill,
-`scripts/apple-signing`) in a desktop-authed `op` terminal:
-
-```sh
-apple-signing renew-wildcard        # --dry-run to preview
+```bash
+IOS_DEVELOPMENT_TEAM="<team-id>" \
+IOS_DEVICE_ID="<device-id>" \
+just build
 ```
 
-It rebuilds `Alexander Wildcard Ad Hoc` via the ASC API (same App ID, all
-registered iOS devices, current distribution cert) and updates the
-`Wildcard Ad Hoc Profile` item in the 1Password `Apple Signing` vault.
-Then re-run `just signing-setup`. If the distribution cert is also expiring,
-`apple-signing renew-distribution` first (annual renewal = both, in that
-order). `apple-signing status` shows what's close to expiry.
+`just build` uses Xcode-managed Apple Development signing, builds Debug, and
+installs the app with `devicectl`. The provisioning profile's expiration is
+determined by the enrolled Apple account and profile. A free Personal Team may
+produce short-lived profiles; paid developer teams are governed by their own
+profile expiration dates.
+
+## Ad Hoc release install
+
+`just deploy` builds Release with manual Ad Hoc signing. In the Apple Developer
+portal, register the App ID and device, create an Ad Hoc provisioning profile,
+and download it. Install the distribution certificate with Keychain Access and
+install the profile with Xcode or by opening the downloaded profile. Apps that
+use capabilities such as App Groups, HealthKit, iCloud, Wallet, push
+notifications, or Sign in with Apple need an explicit App ID with those
+capabilities enabled.
+
+```bash
+IOS_DEVELOPMENT_TEAM="<team-id>" \
+IOS_DEVICE_ID="<device-id>" \
+IOS_PROFILE="<installed-profile-name>" \
+just deploy
+```
+
+Signing material and enrollment are user-managed state. Do not commit them or
+add provider-specific credential retrieval to the app repository.
+
+macOS app? Use the `macos-app` template. TestFlight or App Store app? Use the
+`appstore-app` template.
