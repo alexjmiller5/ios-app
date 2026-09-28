@@ -30,11 +30,29 @@ tree, and can be overridden with `IOS_DERIVED_DATA`.
 - `just build` requires `IOS_DEVELOPMENT_TEAM` and `IOS_DEVICE_ID`. It uses
   Xcode-managed Apple Development signing, builds Debug, and installs with
   `devicectl`.
-- `just deploy` additionally requires `IOS_PROFILE`. It builds Release with an
-  installed Apple Distribution identity and Ad Hoc profile, then installs with
-  `devicectl`.
+- `just deploy` additionally requires `IOS_PROFILE`. It archives Release with
+  an installed Apple Distribution identity and Ad Hoc profile, exports
+  `build/<App>.ipa`, then installs it with `devicectl`.
+- `IOS_INSTALL_HOST` (optional, `build` and `deploy`) is the ssh host of the
+  Mac the phone is paired to. When set, the artifact is copied there and
+  `devicectl` runs there, so a build host without the phone can still
+  install. Unreachable host: the recipe prints the artifact path and the
+  install command and exits non-zero; it never retries.
+- `just run` builds Debug for `IOS_TEST_DESTINATION`, boots that simulator if
+  needed, installs and launches the app, and prints `bundle=<id>
+  simulator=<udid>` for simulator tooling.
 - `just logs` requires `IOS_DEVICE_ID`. Device logs are readable only when the
   installed build and profile permit them.
+
+## Verify
+
+1. Logic: `just test` (write the test first).
+2. The running app: `just run`, then drive the simulator - taps, text,
+   screenshots with the accessibility tree - and read its console.
+3. Hardware-only behavior (camera, microphone, push): `just build` on the
+   phone, then the one check only a human can do.
+
+Procedure, simulator tooling and gotchas: the `apple-dev` skill.
 
 Do not add team IDs, device IDs, profile names, certificate locations, personal
 bundle prefixes, or credential-provider commands to this template. Signing and

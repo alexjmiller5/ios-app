@@ -12,6 +12,7 @@ the source tree.
 just dev    # generate the project and open Xcode
 just test   # run signed simulator tests, including Keychain-dependent tests
 just check  # unsigned simulator build
+just run    # Debug build, install and launch on the test simulator
 ```
 
 `just gen` resolves XcodeGen's real executable so installations exposed through
@@ -44,7 +45,10 @@ just build
 ```
 
 `just build` uses Xcode-managed Apple Development signing, builds Debug, and
-installs the app with `devicectl`. The provisioning profile's expiration is
+installs the app with `devicectl`. Building on a Mac the phone is not paired
+to? Set `IOS_INSTALL_HOST=<ssh host of the paired Mac>` and the artifact is
+copied there and installed from there (the phone on the same Wi-Fi as that
+Mac is enough after the first cable pairing). The provisioning profile's expiration is
 determined by the enrolled Apple account and profile. A free Personal Team may
 produce short-lived profiles; paid developer teams are governed by their own
 profile expiration dates.
@@ -63,7 +67,7 @@ capabilities enabled.
 IOS_DEVELOPMENT_TEAM="<team-id>" \
 IOS_DEVICE_ID="<device-id>" \
 IOS_PROFILE="<installed-profile-name>" \
-just deploy
+just deploy          # writes build/<App>.ipa, then installs it
 ```
 
 Signing material and enrollment are user-managed state. Do not commit them or
