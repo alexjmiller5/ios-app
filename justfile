@@ -3,6 +3,8 @@
 app := "CHANGEME"
 derived_data := env_var_or_default("IOS_DERIVED_DATA", env_var("HOME") + "/Library/Developer/Xcode/DerivedData/" + app)
 test_destination := env_var_or_default("IOS_TEST_DESTINATION", "platform=iOS Simulator,name=iPhone 17")
+# ssh host of the Mac the phone is paired to; empty = install from this Mac
+install_host := env_var_or_default("IOS_INSTALL_HOST", "")
 
 # Regenerate the xcodeproj from project.yml.
 gen:
@@ -30,6 +32,49 @@ check: gen
       CODE_SIGNING_ALLOWED=NO \
       build
 
+# Build Debug, boot the test simulator if needed, install and launch the app there.
+run: gen
+    #!/usr/bin/env bash
+    set -euo pipefail
+    derived_data="{{derived_data}}"
+    xcodebuild -project "{{app}}.xcodeproj" -scheme "{{app}}" \
+      -derivedDataPath "$derived_data" \
+      -destination "{{test_destination}}" \
+      -configuration Debug \
+      CODE_SIGN_IDENTITY=- \
+      CODE_SIGNING_ALLOWED=YES \
+      CODE_SIGNING_REQUIRED=YES \
+      build
+    name=$(printf '%s' "{{test_destination}}" | sed -n 's/.*name=\([^,]*\).*/\1/p')
+    udid=$(xcrun simctl list devices available --json \
+      | jq -r --arg n "$name" '[.devices[][] | select(.name == $n)][0].udid // empty')
+    [ -n "$udid" ] || { echo "no available simulator named '$name' (xcrun simctl list devices)"; exit 1; }
+    app="$derived_data/Build/Products/Debug-iphonesimulator/{{app}}.app"
+    bundle=$(plutil -extract CFBundleIdentifier raw -o - "$app/Info.plist")
+    xcrun simctl boot "$udid" 2>/dev/null || true
+    xcrun simctl bootstatus "$udid" -b >/dev/null
+    xcrun simctl install "$udid" "$app"
+    xcrun simctl launch "$udid" "$bundle" >/dev/null
+    echo "bundle=$bundle simulator=$udid"
+
+# Install an .app or .ipa on IOS_DEVICE_ID, from this Mac or through IOS_INSTALL_HOST.
+_install artifact:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    : "${IOS_DEVICE_ID:?Set IOS_DEVICE_ID to an enrolled device identifier}"
+    artifact="$(cd "$(dirname "{{artifact}}")" && pwd)/$(basename "{{artifact}}")"
+    cmd="xcrun devicectl device install app --device $IOS_DEVICE_ID"
+    if [ -z "{{install_host}}" ]; then
+      $cmd "$artifact" && exit 0
+    else
+      remote="/tmp/$(basename "$artifact")"
+      scp -q -r -o ConnectTimeout=5 "$artifact" "{{install_host}}:/tmp/" \
+        && ssh -o ConnectTimeout=5 "{{install_host}}" "$cmd '$remote'" && exit 0
+    fi
+    echo "install failed; artifact: $artifact"
+    echo "run on the Mac the phone is paired to: $cmd '$artifact'"
+    exit 1
+
 # Build Debug with Xcode-managed development signing and install on an enrolled device.
 build: gen
     #!/usr/bin/env bash
@@ -39,34 +84,54 @@ build: gen
     derived_data="{{derived_data}}"
     xcodebuild -project "{{app}}.xcodeproj" -scheme "{{app}}" \
       -derivedDataPath "$derived_data" \
-      -destination "platform=iOS,id=$IOS_DEVICE_ID" \
+      -destination "generic/platform=iOS" \
       -configuration Debug \
       CODE_SIGN_STYLE=Automatic \
       DEVELOPMENT_TEAM="$IOS_DEVELOPMENT_TEAM" \
       -allowProvisioningUpdates \
       build
-    xcrun devicectl device install app --device "$IOS_DEVICE_ID" \
-      "$derived_data/Build/Products/Debug-iphoneos/{{app}}.app"
+    just _install "$derived_data/Build/Products/Debug-iphoneos/{{app}}.app"
 
-# Build Release with an installed Ad Hoc profile and install on an enrolled device.
+# Build a Release Ad Hoc .ipa into build/ and install it on an enrolled device.
 deploy: gen
     #!/usr/bin/env bash
     set -euo pipefail
     : "${IOS_DEVICE_ID:?Set IOS_DEVICE_ID to an enrolled device identifier}"
     : "${IOS_DEVELOPMENT_TEAM:?Set IOS_DEVELOPMENT_TEAM to the Apple team ID}"
     : "${IOS_PROFILE:?Set IOS_PROFILE to the installed Ad Hoc profile name}"
+    security find-identity -v -p codesigning | grep -q "Apple Distribution" \
+      || { echo "no Apple Distribution identity in the login keychain - install the distribution certificate on this Mac first"; exit 1; }
     derived_data="{{derived_data}}"
+    archive="$derived_data/{{app}}.xcarchive"
     xcodebuild -project "{{app}}.xcodeproj" -scheme "{{app}}" \
       -derivedDataPath "$derived_data" \
-      -destination "platform=iOS,id=$IOS_DEVICE_ID" \
+      -destination "generic/platform=iOS" \
       -configuration Release \
+      -archivePath "$archive" \
       CODE_SIGN_STYLE=Manual \
       CODE_SIGN_IDENTITY="Apple Distribution" \
       PROVISIONING_PROFILE_SPECIFIER="$IOS_PROFILE" \
       DEVELOPMENT_TEAM="$IOS_DEVELOPMENT_TEAM" \
-      clean build
-    xcrun devicectl device install app --device "$IOS_DEVICE_ID" \
-      "$derived_data/Build/Products/Release-iphoneos/{{app}}.app"
+      clean archive
+    bundle=$(plutil -extract CFBundleIdentifier raw -o - "$archive/Products/Applications/{{app}}.app/Info.plist")
+    mkdir -p build
+    cat > build/ExportOptions.plist <<EOF
+    <?xml version="1.0" encoding="UTF-8"?>
+    <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+    <plist version="1.0"><dict>
+      <key>method</key><string>release-testing</string>
+      <key>signingStyle</key><string>manual</string>
+      <key>teamID</key><string>$IOS_DEVELOPMENT_TEAM</string>
+      <key>provisioningProfiles</key><dict><key>$bundle</key><string>$IOS_PROFILE</string></dict>
+    </dict></plist>
+    EOF
+    rm -rf "$derived_data/export"
+    xcodebuild -exportArchive -archivePath "$archive" \
+      -exportOptionsPlist build/ExportOptions.plist \
+      -exportPath "$derived_data/export"
+    cp "$derived_data/export/{{app}}.ipa" "build/{{app}}.ipa"
+    echo "wrote build/{{app}}.ipa"
+    just _install "build/{{app}}.ipa"
 
 # Collect five minutes of logs from an enrolled device.
 logs:
