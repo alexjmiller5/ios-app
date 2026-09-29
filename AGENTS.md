@@ -38,6 +38,14 @@ tree, and can be overridden with `IOS_DERIVED_DATA`.
   `devicectl` runs there, so a build host without the phone can still
   install. Unreachable host: the recipe prints the artifact path and the
   install command and exits non-zero; it never retries.
+- Install order: local network first (`devicectl`, direct or through
+  `IOS_INSTALL_HOST`). When that fails because the phone is unreachable, do
+  not pick a fallback yourself: ask the owner whether they prefer the
+  **tailnet install link** (`just ota`, one tap on the phone, any network,
+  needs the `.ipa` from `just deploy`) or the **cable** (they plug the phone
+  into the paired Mac, then the printed install command runs). `just ota`
+  blocks while it serves; run it in the background and give the owner the
+  URL it prints.
 - `just run` builds Debug for `IOS_TEST_DESTINATION`, boots that simulator if
   needed, installs and launches the app, and prints `bundle=<id>
   simulator=<udid>` for simulator tooling.
