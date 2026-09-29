@@ -70,6 +70,21 @@ IOS_PROFILE="<installed-profile-name>" \
 just deploy          # writes build/<App>.ipa, then installs it
 ```
 
+## When the phone is not on the local network
+
+`devicectl` finds the phone through local-network discovery, so an install
+fails on networks that isolate clients (train, hotel, guest Wi-Fi) or when
+the phone is somewhere else. Two ways through, the owner picks:
+
+- **Tailnet install link**: `just ota` serves `build/<App>.ipa` on this
+  machine's Tailscale name over HTTPS and prints a URL. Open it in Safari on
+  the phone (Tailscale connected), tap Install. Works on any network,
+  including cellular; needs an Ad Hoc `.ipa` (from `just deploy`), HTTPS
+  certificates enabled on the tailnet, and one tap. The page is temporary
+  (`OTA_TTL` seconds, default 900).
+- **Cable**: plug the phone into the Mac it is paired to and run the install
+  command the failed recipe printed.
+
 Signing material and enrollment are user-managed state. Do not commit them or
 add provider-specific credential retrieval to the app repository.
 

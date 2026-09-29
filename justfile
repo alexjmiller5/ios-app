@@ -71,8 +71,11 @@ _install artifact:
       scp -q -r -o ConnectTimeout=5 "$artifact" "{{install_host}}:/tmp/" \
         && ssh -o ConnectTimeout=5 "{{install_host}}" "$cmd '$remote'" && exit 0
     fi
-    echo "install failed; artifact: $artifact"
-    echo "run on the Mac the phone is paired to: $cmd '$artifact'"
+    echo "install failed: the phone is not reachable over the local network"
+    echo "artifact: $artifact"
+    echo "ask the owner which they prefer:"
+    echo "  tailnet  just ota   (an .ipa from just deploy: install link, one tap, any network)"
+    echo "  cable    plug the phone into the paired Mac, then: $cmd '$artifact'"
     exit 1
 
 # Build Debug with Xcode-managed development signing and install on an enrolled device.
@@ -132,6 +135,11 @@ deploy: gen
     cp "$derived_data/export/{{app}}.ipa" "build/{{app}}.ipa"
     echo "wrote build/{{app}}.ipa"
     just _install "build/{{app}}.ipa"
+
+# Serve build/<App>.ipa as an install page on this machine's tailnet name
+# (blocks while serving; OTA_TTL seconds, default 900).
+ota:
+    ./scripts/ota-install.sh "build/{{app}}.ipa"
 
 # Collect five minutes of logs from an enrolled device.
 logs:
