@@ -13,6 +13,9 @@ settings:
     debug:
       ONLY_ACTIVE_ARCH: YES
       ENABLE_TESTABILITY: YES
+      # Same story: XcodeGen leaves Debug at the optimized default, and SwiftUI
+      # previews refuse an optimized build ("Not built with -Onone")
+      SWIFT_OPTIMIZATION_LEVEL: "-Onone"
 packages:
   PostHog:
     url: https://github.com/PostHog/posthog-ios
