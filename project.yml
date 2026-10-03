@@ -34,6 +34,10 @@ targets:
         CODE_SIGN_STYLE: Automatic
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         TARGETED_DEVICE_FAMILY: "1"
+      configs:
+        # Only the app takes the Ad Hoc profile; package resource bundles cannot.
+        release:
+          PROVISIONING_PROFILE_SPECIFIER: ${IOS_PROFILE}
     info:
       path: App/Info.plist
       properties:
