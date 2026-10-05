@@ -95,8 +95,9 @@ macOS app? Use the `macos-app` template. TestFlight or App Store app? Use the
 ## Manual CI Ad Hoc build
 
 The `Build iOS Ad Hoc` workflow archives and verifies a Release IPA without
-installing it or publishing an App Store release. Replace `CHANGEME` throughout
-the workflow and `.env.tpl` when scaffolding. Bootstrap the project with
+installing it or publishing an App Store release. Replace `CHANGEME` with the
+app PascalCase name and `PROJECT_TITLE` with its Title (spaces preserved) in
+workflow/bootstrap vault and ENV item references when scaffolding. Bootstrap the project with
 `op-project-bootstrap .env.tpl --repo <owner>/<repo>`. The only GitHub secret is
 `OP_SERVICE_ACCOUNT_TOKEN`, a project CI service account authorized for its own
 vault and the existing shared Apple Signing exception.
