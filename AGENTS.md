@@ -90,16 +90,18 @@ describe all development installs as lasting seven days.
 Delete this section after scaffolding.
 
 1. Replace `com.example.CHANGEME` in `project.yml` with the chosen reverse-DNS
-   bundle ID. Replace every remaining `CHANGEME` with the app's PascalCase name.
+   bundle ID. Replace remaining `CHANGEME` with the app's PascalCase name.
+   Replace `PROJECT_TITLE` in `.env.tpl` and workflow vault/item references with
+   its Title, preserving spaces.
 2. Ask whether the app gets analytics. Personal and internal apps default to no;
    remove or configure the existing PostHog wiring as described above.
 3. Run `just gen`, `just check`, and `just test`. Override
    `IOS_TEST_DESTINATION` when the default simulator is unavailable or in use.
 4. Complete the README enrollment steps, then set `IOS_DEVELOPMENT_TEAM` and
    `IOS_DEVICE_ID` for `just build`.
-5. For an Ad Hoc release install, provision and install the distribution
-   certificate and profile through Apple, then also set `IOS_PROFILE` for
-   `just deploy`.
+5. For an Ad Hoc release, bootstrap CI as documented in README.md and dispatch
+   the encrypted signing workflow. Local fallback: install the distribution
+   certificate/profile, then set `IOS_PROFILE` for `just deploy`.
 
 ## CI Ad Hoc signing
 
