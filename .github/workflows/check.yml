@@ -1,0 +1,16 @@
+name: Check signing workflow
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  signing-tests:
+    runs-on: macos-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - run: python3 -B scripts/sign_ios_test.py
+      - run: python3 -B scripts/ios_workflow_test.py

@@ -1,0 +1,4 @@
+IOS_CERTIFICATE_P12_BASE64=op://Apple Signing/Apple Distribution Cert/p12_base64
+IOS_CERTIFICATE_PASSWORD=op://Apple Signing/Apple Distribution Cert/password
+IOS_PROFILE_BASE64=op://Apple Signing/Wildcard Ad Hoc Profile/mobileprovision_base64
+IOS_DEVICE_ID=op://PROJECT_TITLE/PROJECT_TITLE ENV/IOS_DEVICE_ID

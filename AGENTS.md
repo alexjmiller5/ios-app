@@ -63,7 +63,7 @@ tree, and can be overridden with `IOS_DERIVED_DATA`.
 Procedure, simulator tooling and gotchas: the `apple-dev` skill.
 
 Do not add team IDs, device IDs, profile names, certificate locations, personal
-bundle prefixes, or credential-provider commands to this template. Signing and
+bundle prefixes, or credential-provider commands to app/runtime code. Signing and
 device enrollment use Xcode, Keychain Access, the Apple Developer portal, and
 the environment-variable interface documented in README.md. Development
 profile validity comes from the enrolled account and generated profile; do not
@@ -90,13 +90,36 @@ describe all development installs as lasting seven days.
 Delete this section after scaffolding.
 
 1. Replace `com.example.CHANGEME` in `project.yml` with the chosen reverse-DNS
-   bundle ID. Replace every remaining `CHANGEME` with the app's PascalCase name.
+   bundle ID. Replace remaining `CHANGEME` with the app's PascalCase name.
+   Replace `PROJECT_TITLE` in `.env.tpl` and workflow vault/item references with
+   its Title, preserving spaces.
 2. Ask whether the app gets analytics. Personal and internal apps default to no;
    remove or configure the existing PostHog wiring as described above.
 3. Run `just gen`, `just check`, and `just test`. Override
    `IOS_TEST_DESTINATION` when the default simulator is unavailable or in use.
 4. Complete the README enrollment steps, then set `IOS_DEVELOPMENT_TEAM` and
    `IOS_DEVICE_ID` for `just build`.
-5. For an Ad Hoc release install, provision and install the distribution
-   certificate and profile through Apple, then also set `IOS_PROFILE` for
-   `just deploy`.
+5. For an Ad Hoc release, bootstrap CI as documented in README.md and dispatch
+   the encrypted signing workflow. Local fallback: install the distribution
+   certificate/profile, then set `IOS_PROFILE` for `just deploy`.
+
+## CI Ad Hoc signing
+
+`.github/workflows/build-ios.yml` is manual dispatch only. It uses the project's
+single `OP_SERVICE_ACCOUNT_TOKEN` GitHub secret and the approved shared Apple
+Signing vault exception. `.env.tpl` and workflow refs are bootstrap manifests;
+provider access stays there, outside the generic signer and app. Device selection
+is the project's ENV `IOS_DEVICE_ID`, required by CI and checked against both
+source and exported profiles. Never print signing values or device identifiers.
+
+`scripts/sign-ios.py` exports exactly `App.ipa`, with temporary keychain/profile
+cleanup and app-target-only `IOS_PROFILE`. Keep helper regression tests passing,
+including the actual macOS certificate extraction test. Unsupported entitlement
+shapes fail closed. No global provisioning profile build setting.
+
+Every dispatch accepts a public `artifact_recipient` age key whose private
+identity stays temporarily with the operator. Upload only encrypted `App.ipa.age`
+with one-day retention. Public-repo artifact login is not confidentiality; the
+embedded profile necessarily includes registered devices. Never upload separate
+profiles, P12s, keychains or raw signing logs. Installation is a separate owner
+choice; a successful workflow is not a successful phone installation.
