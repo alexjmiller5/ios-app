@@ -55,6 +55,22 @@ tree, and can be overridden with `IOS_DERIVED_DATA`.
 - `just logs` requires `IOS_DEVICE_ID`. Device logs are readable only when the
   installed build and profile permit them.
 
+## Iterate locally, CI after the owner confirms
+
+- While iterating, build, sign and install from the build host: `just build`
+  (Debug), or a local Ad Hoc `.ipa` from the same helper CI uses
+  (`python3 scripts/sign-ios.py --project CHANGEME.xcodeproj --scheme CHANGEME
+  --output build/adhoc` with the `.env.tpl` signing material in the
+  environment), then the install or `just ota`. Never push, tag or dispatch
+  CI only to get an installable build.
+- Ask the owner whether iteration is done before dispatching `build-ios.yml`;
+  after they confirm, install from the verified CI artifact.
+- **CI hygiene.** Checks run on pushes to `main` and on pull requests and
+  cancel superseded runs (`concurrency`, `cancel-in-progress`); cancelled
+  runs send no failure mail. Slow UI or accessibility suites run on demand
+  (`workflow_dispatch`) or before a release, never on every push, branch or
+  tag. A workflow that needs secrets skips in the template repo itself.
+
 ## Verify
 
 1. Logic: `just test` (write the test first).
