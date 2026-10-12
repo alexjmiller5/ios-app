@@ -24,8 +24,20 @@ test: gen
       CODE_SIGNING_REQUIRED=YES \
       test
 
+# The app icon is a gate (the icons skill): once the app is named,
+# AppIcon.appiconset must point at a real 1024x1024 PNG.
+[private]
+icon-gate:
+    @[ "{{app}}" != "CHANGEME" ] || { echo "icon gate arms once the app is named"; exit 0; }; \
+      dir=App/Assets.xcassets/AppIcon.appiconset; \
+      f=$(jq -r '[.images[] | select(.idiom == "universal") | .filename // empty][0] // empty' "$dir/Contents.json"); \
+      [ -n "$f" ] && [ -f "$dir/$f" ] \
+      || { echo "AppIcon.appiconset has no icon image - add a 1024x1024 PNG designed per the icons skill"; exit 1; }; \
+      [ "$(sips -g pixelWidth -g pixelHeight "$dir/$f" | awk '/pixel/ {print $2}' | paste -sd x -)" = "1024x1024" ] \
+      || { echo "$dir/$f must be 1024x1024"; exit 1; }
+
 # Build for the simulator without developer credentials.
-check: gen
+check: icon-gate gen
     xcodebuild -project "{{app}}.xcodeproj" -scheme "{{app}}" \
       -derivedDataPath "{{derived_data}}" \
       -destination "generic/platform=iOS Simulator" \
@@ -135,10 +147,10 @@ deploy: gen
     echo "wrote build/{{app}}.ipa"
     just _install "build/{{app}}.ipa"
 
-# Serve build/<App>.ipa as an install page on this machine's tailnet name
-# (blocks while serving; OTA_TTL seconds, default 900).
+# Add build/<App>.ipa to this machine's shared tailnet install page
+# (https://<tailnet name>/install/; listed OTA_TTL_HOURS, default 48).
 ota:
-    ./scripts/ota-install.sh "build/{{app}}.ipa"
+    ./scripts/ota-install.py "build/{{app}}.ipa"
 
 # Collect five minutes of logs from an enrolled device.
 logs:

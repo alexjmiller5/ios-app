@@ -44,8 +44,11 @@ tree, and can be overridden with `IOS_DERIVED_DATA`.
   **tailnet install link** (`just ota`, one tap on the phone, any network,
   needs the `.ipa` from `just deploy`) or the **cable** (they plug the phone
   into the paired Mac, then the printed install command runs). `just ota`
-  blocks while it serves; run it in the background and give the owner the
-  URL it prints.
+  adds the app to the machine's one shared install page
+  (`https://<tailnet name>/install/`) and returns; give the owner the URL it
+  prints. Every agent's apps share that page: a new app is appended, a newer
+  build replaces its entry, entries expire after 48 h, and the page server
+  removes itself once the list is empty.
 - `just run` builds Debug for `IOS_TEST_DESTINATION`, boots that simulator if
   needed, installs and launches the app, and prints `bundle=<id>
   simulator=<udid>` for simulator tooling.
@@ -83,12 +86,17 @@ describe all development installs as lasting seven days.
   Keychain. Shared nonsecret preferences may use App Group defaults when the app
   has that entitlement.
 - Use `App/Assets.xcassets`; supply one 1024 by 1024 AppIcon and let iOS produce
-  other sizes.
+  other sizes. The icon is required (the `icons` skill; `just check` gates it).
 
 ## New-project checklist
 
 Delete this section after scaffolding.
 
+0. **App icon, non-negotiable.** Add a real 1024x1024 PNG to
+   `App/Assets.xcassets/AppIcon.appiconset` and name it in `Contents.json`,
+   designed per the `icons` skill ("A project's own icon": subject +
+   function, opaque full-bleed square). Once the app is named, `just check`
+   fails while it is missing or not 1024x1024.
 1. Replace `com.example.CHANGEME` in `project.yml` with the chosen reverse-DNS
    bundle ID. Replace remaining `CHANGEME` with the app's PascalCase name.
    Replace `PROJECT_TITLE` in `.env.tpl` and workflow vault/item references with

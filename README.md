@@ -76,12 +76,16 @@ just deploy          # writes build/<App>.ipa, then installs it
 fails on networks that isolate clients (train, hotel, guest Wi-Fi) or when
 the phone is somewhere else. Two ways through, the owner picks:
 
-- **Tailnet install link**: `just ota` serves `build/<App>.ipa` on this
-  machine's Tailscale name over HTTPS and prints a URL. Open it in Safari on
-  the phone (Tailscale connected), tap Install. Works on any network,
-  including cellular; needs an Ad Hoc `.ipa` (from `just deploy`), HTTPS
-  certificates enabled on the tailnet, and one tap. The page is temporary
-  (`OTA_TTL` seconds, default 900).
+- **Tailnet install link**: `just ota` adds `build/<App>.ipa` to this
+  machine's install page, `https://<tailnet name>/install/`, and prints that
+  URL. Open it in Safari on the phone (Tailscale connected), tap Install.
+  Works on any network, including cellular; needs an Ad Hoc `.ipa` (from
+  `just deploy`), HTTPS certificates enabled on the tailnet, and one tap.
+  One page lists every app published on the machine: a newer build of an
+  app replaces its entry, entries expire after `OTA_TTL_HOURS` (default 48),
+  and the page server (a transient launchd job behind `tailscale serve`,
+  state in `$XDG_STATE_HOME/ota-install`) removes itself when the list is
+  empty. `OTA_HTTPS_PORT` (default 443) picks the tailnet HTTPS port.
 - **Cable**: plug the phone into the Mac it is paired to and run the install
   command the failed recipe printed.
 
