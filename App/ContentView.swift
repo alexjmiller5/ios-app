@@ -2,8 +2,14 @@ import SwiftUI
 
 struct ContentView: View {
     var body: some View {
-        Text("CHANGEME")
-            .font(.title)
+        VStack {
+            Spacer()
+            Text("CHANGEME")
+                .font(.title)
+            Spacer()
+            VersionLabel()
+        }
+        .padding()
     }
 }
 

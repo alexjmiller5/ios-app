@@ -6,6 +6,10 @@ options:
 settings:
   base:
     SWIFT_VERSION: "5.0"
+    # The one version source: the Info.plist keys below and the in-app
+    # version label read these. Changes only in a release commit (semver skill).
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
   configs:
     # Xcode project templates set these for Debug; XcodeGen does not - without
     # them, Debug builds fail ("could not find module ... for target" arch
@@ -43,6 +47,8 @@ targets:
       properties:
         UILaunchScreen: {}
         ITSAppUsesNonExemptEncryption: false
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
   CHANGEMETests:
     type: bundle.unit-test
     platform: iOS

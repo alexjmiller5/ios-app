@@ -10,7 +10,7 @@ private let posthogAPIKey = ""
 struct MainApp: App {
     init() {
         if !posthogAPIKey.isEmpty {
-            let config = PostHogConfig(apiKey: posthogAPIKey, host: "https://us.i.posthog.com")
+            let config = PostHogConfig(projectToken: posthogAPIKey, host: "https://us.i.posthog.com")
             PostHogSDK.shared.setup(config)
         }
     }

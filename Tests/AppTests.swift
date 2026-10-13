@@ -3,7 +3,9 @@ import XCTest
 
 final class AppTests: XCTestCase {
     // Replace with real tests for the app's core logic (TDD: write these first).
-    func testScaffold() {
-        XCTAssertTrue(true)
+
+    func testVersionTextShowsPublicVersionAndBuild() {
+        let info = ["CFBundleShortVersionString": "1.2.0", "CFBundleVersion": "42"]
+        XCTAssertEqual(versionText(info), "Version 1.2.0 (42)")
     }
 }

@@ -103,6 +103,12 @@ describe all development installs as lasting seven days.
   has that entitlement.
 - Use `App/Assets.xcassets`; supply one 1024 by 1024 AppIcon and let iOS produce
   other sizes. The icon is required (the `icons` skill; `just check` gates it).
+- Version label: the settings screen, or the main view's footer until there
+  is one, shows `VersionLabel()` ("Version <short> (<build>)", small secondary
+  text) from `App/VersionLabel.swift`. It reads `Bundle.main` at run time, so
+  `MARKETING_VERSION` / `CURRENT_PROJECT_VERSION` in `project.yml` stay the
+  single version source: no hardcoded copy, nothing beyond the public version.
+  Keep it when restyling.
 
 ## New-project checklist
 
