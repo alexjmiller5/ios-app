@@ -108,6 +108,9 @@ describe all development installs as lasting seven days.
   text) from `App/VersionLabel.swift`. It reads `Bundle.main` at run time, so
   `MARKETING_VERSION` / `CURRENT_PROJECT_VERSION` in `project.yml` stay the
   single version source: no hardcoded copy, nothing beyond the public version.
+  CI archives override the build number with the run number (`BUILD_NUMBER`,
+  passed by `sign-ios.py` as `CURRENT_PROJECT_VERSION`), so every Ad Hoc build
+  is distinguishable on the phone and the install page; local builds keep 1.
   Keep it when restyling.
 
 ## New-project checklist
