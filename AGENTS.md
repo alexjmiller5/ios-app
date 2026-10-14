@@ -32,7 +32,14 @@ tree, and can be overridden with `IOS_DERIVED_DATA`.
   `devicectl`.
 - `just deploy` additionally requires `IOS_PROFILE`. It archives Release with
   an installed Apple Distribution identity and Ad Hoc profile, exports
-  `build/<App>.ipa`, then installs it with `devicectl`.
+  `build/<App>.ipa`, publishes it to the shared install page, then installs
+  it with `devicectl`.
+- Every new installable build must replace the app's entry on the shared
+  install page, including builds also installed over Wi-Fi or cable. Verify
+  the served manifest and IPA version/build before reporting delivery complete.
+  A delivered Debug `.app` also needs a verified Ad Hoc `.ipa` for the page.
+  `_install` publishes `.ipa` artifacts before attempting device installation;
+  publish downloaded CI artifacts with `just ota` before other install paths.
 - `IOS_INSTALL_HOST` (optional, `build` and `deploy`) is the ssh host of the
   Mac the phone is paired to. When set, the artifact is copied there and
   `devicectl` runs there, so a build host without the phone can still
@@ -61,7 +68,7 @@ tree, and can be overridden with `IOS_DERIVED_DATA`.
   (Debug), or a local Ad Hoc `.ipa` from the same helper CI uses
   (`python3 scripts/sign-ios.py --project CHANGEME.xcodeproj --scheme CHANGEME
   --output build/adhoc` with the `.env.tpl` signing material in the
-  environment), then the install or `just ota`. Never push, tag or dispatch
+  environment), then `just ota` and the device install. Never push, tag or dispatch
   CI only to get an installable build.
 - Ask the owner whether iteration is done before dispatching `build-ios.yml`;
   after they confirm, install from the verified CI artifact.

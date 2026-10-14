@@ -1,7 +1,40 @@
 import unittest
+import os
+import subprocess
+import tempfile
 from pathlib import Path
 
 class WorkflowTests(unittest.TestCase):
+    def test_ipa_is_published_before_device_install_even_when_phone_is_unreachable(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'justfile').write_text((Path(__file__).parents[1] / 'justfile').read_text())
+            (root / 'scripts').mkdir()
+            (root / 'bin').mkdir()
+            (root / 'App.ipa').touch()
+            upload = root / 'scripts/ota-install.py'
+            upload.write_text(
+                '#!/usr/bin/env python3\nimport os, pathlib, sys\n'
+                'with pathlib.Path(os.environ["EVENTS"]).open("a") as log: log.write("upload\\n")\n'
+                'sys.exit(int(os.environ["UPLOAD_EXIT"]))\n')
+            upload.chmod(0o755)
+            install = root / 'bin/xcrun'
+            install.write_text('#!/bin/sh\nprintf "install\\n" >> "$EVENTS"\nexit "$INSTALL_EXIT"\n')
+            install.chmod(0o755)
+            events = root / 'events'
+            for upload_exit, install_exit in [(0, 0), (0, 1), (1, 0)]:
+                with self.subTest(upload_exit=upload_exit, install_exit=install_exit):
+                    events.write_text('')
+                    result = subprocess.run(
+                        ['just', '--justfile', str(root / 'justfile'), '_install', str(root / 'App.ipa')],
+                        env={**os.environ, 'PATH': str(root / 'bin') + os.pathsep + os.environ['PATH'],
+                             'IOS_INSTALL_HOST': '', 'IOS_DEVICE_ID': 'fixture-device',
+                             'EVENTS': str(events), 'UPLOAD_EXIT': str(upload_exit),
+                             'INSTALL_EXIT': str(install_exit)}, capture_output=True, text=True)
+                    self.assertEqual(events.read_text().splitlines(),
+                                     ['upload'] if upload_exit else ['upload', 'install'])
+                    self.assertEqual(result.returncode == 0, upload_exit == install_exit == 0)
+
     def test_workflow_dispatch_encrypts_only_artifact_and_always_cleans_plaintext(self):
         import json
         import subprocess

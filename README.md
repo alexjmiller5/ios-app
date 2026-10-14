@@ -67,8 +67,14 @@ capabilities enabled.
 IOS_DEVELOPMENT_TEAM="<team-id>" \
 IOS_DEVICE_ID="<device-id>" \
 IOS_PROFILE="<installed-profile-name>" \
-just deploy          # writes build/<App>.ipa, then installs it
+just deploy          # writes build/<App>.ipa, publishes it, then installs it
 ```
+
+Every new installable build also goes on the shared install page, even when
+installed by cable or Wi-Fi. `_install` publishes `.ipa` files before attempting
+the device install. Publish verified CI artifacts with `just ota`; a delivered
+Debug `.app` needs a verified Ad Hoc `.ipa` for the page too. Check the served
+manifest and IPA version/build before declaring delivery complete.
 
 ## When the phone is not on the local network
 

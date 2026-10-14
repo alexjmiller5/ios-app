@@ -75,6 +75,9 @@ _install artifact:
     set -euo pipefail
     : "${IOS_DEVICE_ID:?Set IOS_DEVICE_ID to an enrolled device identifier}"
     artifact="$(cd "$(dirname "{{artifact}}")" && pwd)/$(basename "{{artifact}}")"
+    case "$artifact" in
+      *.ipa) python3 scripts/ota-install.py "$artifact" ;;
+    esac
     cmd="xcrun devicectl device install app --device $IOS_DEVICE_ID"
     if [ -z "{{install_host}}" ]; then
       $cmd "$artifact" && exit 0
