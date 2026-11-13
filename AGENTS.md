@@ -62,6 +62,12 @@ tree, and can be overridden with `IOS_DERIVED_DATA`.
 - `just logs` requires `IOS_DEVICE_ID`. Device logs are readable only when the
   installed build and profile permit them.
 
+The shared install page ships its own phone-and-download favicon and opaque
+home-screen icons. The SVG master and its rendered PNG sizes are embedded in
+`scripts/ota-install.py`, so the installed publisher remains self-contained.
+Keep icon links under the supplied base URL, including the `/install` prefix,
+and verify them with `python3 -B scripts/ota_install_test.py`.
+
 ## Iterate locally, CI after the owner confirms
 
 - While iterating, build, sign and install from the build host: `just build`
